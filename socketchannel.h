@@ -88,8 +88,8 @@ public:
             _running = false;
         }
 
-//        if (_workerThread.joinable())
-//            _workerThread.join();
+        if (_workerThread.joinable())
+            _workerThread.detach(); // Don't wait for the thread to finish; it can block
 
         CloseSocket();
     }

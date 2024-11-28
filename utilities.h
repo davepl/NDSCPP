@@ -171,10 +171,10 @@ public:
         vector<uint8_t> combined;
 
         // Calculate the total size of the combined array using a fold expression
-        size_t totalSize = (arrays.size() + ... + 0);
+        size_t totalSize = (arrays.size() + ...);
         combined.reserve(totalSize);
 
-        // Append each array to the combined vector using a fold expression
+        // Append each array to the combined vector using a comma fold
         (combined.insert(
              combined.end(),
              make_move_iterator(arrays.begin()),
