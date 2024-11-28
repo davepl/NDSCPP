@@ -53,7 +53,7 @@ vector<unique_ptr<ICanvas>> LoadCanvases()
     auto canvasMesmerizer = make_unique<Canvas>(64, 32, 20);
     auto feature1 = make_unique<LEDFeature>(
         canvasMesmerizer.get(),// Canvas pointer
-        "192.168.8.161",      // Hostname
+        "192.168.1.138",      // Hostname
         "Mesmerizer",         // Friendly Name
         49152,                // Port
         64, 32,               // Width, Height
@@ -67,7 +67,7 @@ vector<unique_ptr<ICanvas>> LoadCanvases()
     canvasMesmerizer->Effects().AddEffect(make_unique<MP4PlaybackEffect>("Starfield", "./media/mp4/rickroll.mp4"));
     canvasMesmerizer->Effects().SetCurrentEffect(0, *canvasMesmerizer);
     canvases.push_back(std::move(canvasMesmerizer));
-
+/*
     //---------------------------------------------------------------------
 
     // Define a Canvas for the Workbench Banner
@@ -304,7 +304,7 @@ vector<unique_ptr<ICanvas>> LoadCanvases()
         canvasCeiling->Effects().SetCurrentEffect(0, *canvasCeiling);
         canvases.push_back(std::move(canvasCeiling));        
     }
-
+*/
     return canvases;
 }
 
