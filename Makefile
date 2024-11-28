@@ -1,7 +1,7 @@
 SHELL:=/bin/bash
 
 CC=clang++
-CFLAGS=-std=c++2a -g3 -O3 -Ieffects -I/opt/homebrew/include
+CFLAGS=-std=c++20 -g3 -O3 -Ieffects -I/opt/homebrew/include
 LDFLAGS=
 LIBS=-lpthread -lz -lavformat -lavcodec -lavutil -lswscale -lswresample
 
