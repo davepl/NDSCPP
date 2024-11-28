@@ -10,9 +10,6 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Check clang++ version
-      run: clang++ --version
-
     - name: Set up dependencies
       run: |
         sudo apt-get update 

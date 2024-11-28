@@ -9,6 +9,7 @@ using namespace std;
 // it, and this class provides functions to convert the data into that format.
 
 #include <vector>
+#include <array>
 #include <bit>
 #include <cmath>
 #include <cstdint>
