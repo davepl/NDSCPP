@@ -1,3 +1,5 @@
+ #define _XOPEN_SOURCE_EXTENDED 1
+#include <locale.h>
 #include <ncurses.h>
 #include <curl/curl.h>
 #include <chrono>
@@ -19,6 +21,113 @@ extern const std::vector<std::pair<std::string, int>> COLUMNS;
 constexpr int HEADER_HEIGHT = 3;
 constexpr int FOOTER_HEIGHT = 2;
 
+
+extern size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
+
+inline std::string buildMeter(double value, double threshold, int width = 21)
+{
+    // Width should be odd to have a center point
+    if (width % 2 == 0)
+        width++;
+
+    // Normalize value to -1..1 range based on threshold
+    double normalized = std::min(1.0, std::max(-1.0, value / threshold));
+
+    // Calculate position (center = width/2)
+    int center = width / 2;
+    int pos = center + static_cast<int>(normalized * center);
+
+    std::string meter;
+    for (int i = 0; i < width; i++)
+    {
+        meter += (i == pos) ? "|" : "-";
+    }
+    return meter;
+}
+
+inline std::string buildProgressBar(double value, double maximum, int width = 10) 
+{
+    static const std::array<const char*, 9> blocks = {
+        " ", "▏", "▎", "▍", "▌", "▋", "▊", "▉", "█"
+    };
+    
+    double percentage = std::min(1.0, std::max(0.0, value / maximum));
+    double exactBlocks = percentage * width;
+    int fullBlocks = static_cast<int>(exactBlocks);
+    int remainder = static_cast<int>((exactBlocks - fullBlocks) * 8);
+    
+    std::string bar;
+    bar.reserve(width * 3);
+    
+    for (int i = 0; i < fullBlocks; i++) {
+        bar += blocks[8];
+    }
+    
+    if (fullBlocks < width) {
+        bar += blocks[remainder];
+        bar.append(width - fullBlocks - 1, blocks[0][0]);
+    }
+    return bar;
+}
+
+
+
+// Helper to make HTTP requests
+inline std::string httpGet(const std::string &url)
+{
+    CURL *curl = curl_easy_init();
+    std::string response;
+
+    if (curl)
+    {
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+
+        CURLcode res = curl_easy_perform(curl);
+        if (res != CURLE_OK)
+            response = "Error: " + std::string(curl_easy_strerror(res));
+
+        curl_easy_cleanup(curl);
+    }
+    return response;
+}
+
+// Format helpers
+inline std::string formatBytes(double bytes)
+{
+    const char *units[] = {"B/s", "KB/s", "MB/s", "GB/s"};
+    int unit = 0;
+    while (bytes >= 1024 && unit < 3)
+    {
+        bytes /= 1024;
+        unit++;
+    }
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(0) << bytes << units[unit]; // Removed decimal places
+    return oss.str();
+}
+
+inline std::string formatWifiSignal(double signal)
+{
+    std::ostringstream oss;
+    if (signal == 1000)
+        oss << "1Gb/s";
+    else if (signal == 10000)
+        oss << "10Gb/s";
+    else
+        oss << std::abs((int)signal) << "dBm"; // Added abs() and removed decimal places
+    return oss.str();
+}
+
+inline std::string formatTimeDelta(double delta)
+{
+    string meter = buildMeter(delta, 3.0, 5);
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(1) << delta << "s " << meter;
+    return oss.str();
+}
+
 class Monitor
 {
     WINDOW *headerWin;
@@ -34,6 +143,7 @@ public:
         : baseUrl(std::string("http://") + hostname + ":" + std::to_string(port)),
           _fps(fps)
     {
+        setlocale(LC_ALL, "");
         initscr();
         start_color();
         cbreak();

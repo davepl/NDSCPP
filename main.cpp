@@ -9,7 +9,7 @@
 // Main.cpp
 //
 // This file is the main entry point for the NDSCPP LED Matrix Server application.
-// It creates a Canvas, adds a GreenFillEffect to it, and then enters a loop where it
+// It creates a Canvas, adds a green fill effect to it, and then enters a loop where it
 // renders the effect to the canvas, compresses the data, and sends it to the LED
 // matrix via a SocketChannel.  The program will continue to run until it receives
 // a SIGINT signal (Ctrl-C).
@@ -28,12 +28,12 @@
 #include "webserver.h"
 #include "effectsmanager.h"
 #include "colorwaveeffect.h"
-#include "greenfilleffect.h"
 #include "starfield.h"
 #include "videoeffect.h"
 #include "misceffects.h"
 #include "palette.h"
 #include "paletteeffect.h"
+#include "fireworkseffect.h"
 
 using namespace std;
 
@@ -209,7 +209,7 @@ vector<unique_ptr<ICanvas>> LoadCanvases()
         canvasCabinets->AddFeature(std::move(featureCabinets2));
         canvasCabinets->AddFeature(std::move(featureCabinets3));
         canvasCabinets->AddFeature(std::move(featureCabinets4));
-        canvasCabinets->Effects().AddEffect(make_unique<PaletteEffect>("Rainbow Scroll", Palette(Palette::Rainbow), 3.0, 0.0, 0.01));
+        canvasCabinets->Effects().AddEffect(make_unique<PaletteEffect<8>>("Rainbow Scroll", StandardPalettes::Rainbow, 2.0, 0.0, 0.01));
         canvasCabinets->Effects().SetCurrentEffect(0, *canvasCabinets);
         canvases.push_back(std::move(canvasCabinets));
     }
@@ -272,7 +272,7 @@ vector<unique_ptr<ICanvas>> LoadCanvases()
         canvasCabana->AddFeature(std::move(featureCabana2));
         canvasCabana->AddFeature(std::move(featureCabana3));
         canvasCabana->AddFeature(std::move(featureCabana4));
-        canvasCabana->Effects().AddEffect(make_unique<PaletteEffect>("Rainbow Scroll", Palette(Palette::ChristmasLights), 0.0, 0.0, 1.0, 30, 4));
+        canvasCabana->Effects().AddEffect(make_unique<PaletteEffect<4>>("Rainbow Scroll", StandardPalettes::ChristmasLights, 0.0, 5.0, 1.0, 30, 4));
         canvasCabana->Effects().SetCurrentEffect(0, *canvasCabana);
         canvases.push_back(std::move(canvasCabana));
     }
@@ -291,7 +291,7 @@ vector<unique_ptr<ICanvas>> LoadCanvases()
             500                  // Client Buffer Count
         );
         canvasCeiling->AddFeature(std::move(featureCeiling));
-        canvasCeiling->Effects().AddEffect(make_unique<PaletteEffect>("Rainbow Scroll", Palette(Palette::ChristmasLights), 0.0, 0.0, 1.0, 30, 4));
+        canvasCeiling->Effects().AddEffect(make_unique<FireworksEffect>("Fireworks"));
         canvasCeiling->Effects().SetCurrentEffect(0, *canvasCeiling);
         canvases.push_back(std::move(canvasCeiling));
     }
@@ -310,7 +310,7 @@ vector<unique_ptr<ICanvas>> LoadCanvases()
             180               // Client Buffer Count
         );
         canvasTree->AddFeature(std::move(featureTree));
-        canvasTree->Effects().AddEffect(make_unique<PaletteEffect>("Rainbow Scroll", Palette(Palette::Rainbow), 0.25, 0.0, 1, 1));
+        canvasTree->Effects().AddEffect(make_unique<PaletteEffect<8>>("Rainbow Scroll", StandardPalettes::Rainbow, 0.25, 0.0, 1, 1));
         canvasTree->Effects().SetCurrentEffect(0, *canvasTree);
         canvases.push_back(std::move(canvasTree));
     }

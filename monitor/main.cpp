@@ -17,6 +17,12 @@
 
 using json = nlohmann::json;
 
+size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
+{
+    ((std::string *)userp)->append((char *)contents, size * nmemb);
+    return size * nmemb;
+}
+
 void print_usage(const char *program_name)
 {
     fprintf(stderr, "Usage: %s [-s hostname] [-p port] [-f fps]\n", program_name);

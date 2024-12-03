@@ -22,6 +22,20 @@ class Utilities
 {
 public:
 
+    static double RandomDouble(double min, double max)
+    {
+        static std::mt19937 rng(std::random_device{}());
+        std::uniform_real_distribution<double> dist(min, max);
+        return dist(rng);
+    }
+
+    static int RandomInt(int min, int max)
+    {
+        static std::mt19937 rng(std::random_device{}());
+        std::uniform_int_distribution<int> dist(min, max);
+        return dist(rng);
+    }
+
     static vector<uint8_t> ConvertPixelsToByteArray(const vector<CRGB> &pixels, bool reversed, bool redGreenSwap)
     {
         vector<uint8_t> byteArray(pixels.size() * 3); // Allocate space upfront

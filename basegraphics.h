@@ -143,4 +143,73 @@ public:
             pixel.b = scale8(pixel.b, 255-dimAmount);
         }
     }
+
+    void SetPixelsF(float fPos, float count, CRGB c, bool bMerge = false) override
+    {
+        // Early exit for empty ranges or out-of-bounds start positions
+        if (count <= 0 || fPos >= _pixels.size() || fPos + count <= 0)
+            return;
+
+        // Pre-calculate common values
+        const size_t arraySize = _pixels.size();
+        const int startIdx = std::max(0, static_cast<int>(std::floor(fPos)));
+        const int endIdx = std::min(static_cast<int>(arraySize), static_cast<int>(std::ceil(fPos + count)));
+        const float frac1 = fPos - std::floor(fPos);
+        const uint8_t fade1 = static_cast<uint8_t>((std::max(frac1, 1.0f - count)) * 255);
+        float remainingCount = count - (1.0f - frac1);
+        const int fullPixels = static_cast<int>(remainingCount);
+        const float lastFrac = remainingCount - std::floor(remainingCount);
+        const uint8_t fade2 = static_cast<uint8_t>((1.0f - lastFrac) * 255);
+
+        if (!bMerge)
+        {
+            // Non-merging implementation
+            
+            if (startIdx >= 0 && startIdx < arraySize)
+            {
+                CRGB c1 = c;
+                c1.fadeToBlackBy(fade1);
+                _pixels[startIdx] = c1;
+            }
+
+            // Middle pixels - use pointer arithmetic for speed
+            CRGB *pixel = &_pixels[startIdx + 1];
+            const CRGB *end = &_pixels[endIdx - 1];
+            while (pixel < end)
+                *pixel++ = c;
+
+            // Last pixel if needed
+            if (lastFrac > 0 && endIdx - 1 < arraySize)
+            {
+                CRGB c2 = c;
+                c2.fadeToBlackBy(fade2);
+                _pixels[endIdx - 1] = c2;
+            }
+        }
+        else
+        {
+            // Merging implementation
+            // First pixel
+            if (startIdx >= 0 && startIdx < arraySize)
+            {
+                CRGB c1 = c;
+                c1.fadeToBlackBy(fade1);
+                _pixels[startIdx] += c1;
+            }
+
+            // Middle pixels - use pointer arithmetic for speed
+            CRGB *pixel = &_pixels[startIdx + 1];
+            const CRGB *end = &_pixels[endIdx - 1];
+            while (pixel < end)
+                *pixel++ += c;
+
+            // Last pixel if needed
+            if (lastFrac > 0 && endIdx - 1 < arraySize)
+            {
+                CRGB c2 = c;
+                c2.fadeToBlackBy(fade2);
+                _pixels[endIdx - 1] += c2;
+            }
+        }
+    }
 };

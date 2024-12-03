@@ -1318,3 +1318,36 @@ inline void hsv2rgb_rainbow(const CHSV & hsv, CRGB & rgb, bool fast = false)
         }
     }
 }
+
+// Standard color sequences for use with Palette class
+namespace StandardPalettes 
+{
+    inline constexpr std::array<CRGB, 8> Rainbow = {
+        CRGB(255, 0, 0),     // Pure Red
+        CRGB(255, 80, 0),    // Red-Orange
+        CRGB(255, 165, 0),   // Orange
+        CRGB(255, 255, 0),   // Yellow
+        CRGB(0, 255, 0),     // Pure Green
+        CRGB(0, 150, 255),   // Blue-Green
+        CRGB(0, 0, 255),     // Pure Blue
+        CRGB(143, 0, 255)    // Violet
+    };
+
+    inline constexpr std::array<CRGB, 4> ChristmasLights = {
+        CRGB(255, 0, 0),     // Red
+        CRGB(0, 255, 0),     // Green
+        CRGB(0, 0, 255),     // Blue
+        CRGB(128, 0, 128)    // Purple
+    };
+
+    inline constexpr std::array<CRGB, 16> RainbowStripes = {
+        CRGB::Black,   CRGB::Red,
+        CRGB::Black,   CRGB::Orange,   
+        CRGB::Black,   CRGB::Yellow,   
+        CRGB::Black,   CRGB::Green,
+        CRGB::Black,   CRGB::Cyan,
+        CRGB::Black,   CRGB::Blue,
+        CRGB::Black,   CRGB::Purple,   
+        CRGB::Black,   CRGB::Green
+    };
+}

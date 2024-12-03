@@ -156,6 +156,7 @@ inline void to_json(nlohmann::json &j, const ILEDFeature &feature)
             {"isConnected", feature.Socket().IsConnected()},
             {"queueDepth", feature.Socket().GetCurrentQueueDepth()},
             {"queueMaxSize", feature.Socket().GetQueueMaxSize()},
+            {"reconnectCount", feature.Socket().GetReconnectCount()}
         };
 
         const auto &response = socket.LastClientResponse();
