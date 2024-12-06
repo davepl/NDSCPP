@@ -88,5 +88,8 @@
         "random": "cpp",
         "unordered_set": "cpp"
     },
-    "C_Cpp.default.cppStandard": "c++20"
+    "C_Cpp.default.cppStandard": "c++20",
+    "cSpell.words": [
+        "spdlog"
+    ]
 }

@@ -14,10 +14,10 @@ using namespace std;
 class Canvas : public ICanvas
 {
     static atomic<uint32_t> _nextId;
-    uint32_t _id;
-    BaseGraphics _graphics;
-    EffectsManager _effects;
-    string _name;
+    uint32_t                _id;
+    BaseGraphics            _graphics;
+    EffectsManager          _effects;
+    string                  _name;
     vector<unique_ptr<ILEDFeature>> _features;
 
 public:
@@ -37,6 +37,12 @@ public:
     uint32_t Id() const override 
     { 
         return _id; 
+    }
+
+    uint32_t SetId(uint32_t id) override 
+    { 
+        _id = id;
+        return _id;
     }
 
     ILEDGraphics & Graphics() override
@@ -59,31 +65,42 @@ public:
         return _effects;
     }
 
-    vector<unique_ptr<ILEDFeature>>& Features() override
+    vector<ILEDFeature *> Features() override
     {
-        return _features;
+        vector<ILEDFeature *> features;
+        for (auto &feature : _features)
+            features.push_back(feature.get());
+        return features;
     }
 
-    const vector<unique_ptr<ILEDFeature>>& Features() const override
+    const vector<ILEDFeature *> Features() const override
     {
-        return _features;
+        vector<ILEDFeature *> features;
+        for (const auto &feature : _features)
+            features.push_back(feature.get());
+        return features;
     }
 
-    void AddFeature(unique_ptr<ILEDFeature> feature) override
+    uint32_t AddFeature(unique_ptr<ILEDFeature> feature) override
     {
         if (!feature)
             throw invalid_argument("Cannot add a null feature.");
 
+        uint32_t id = feature->Id();
         _features.push_back(std::move(feature));
+        return id;    
     }
 
-    void RemoveFeature(unique_ptr<ILEDFeature> & feature) override
+    bool RemoveFeatureById(uint16_t featureId) override
     {
-        if (!feature)
-            throw invalid_argument("Cannot remove a null feature.");
-
-        auto it = find(_features.begin(), _features.end(), feature);
-        if (it != _features.end())
-            _features.erase(it);
-    }
+        for (size_t i = 0; i < _features.size(); ++i)
+        {
+            if (_features[i]->Id() == featureId)
+            {
+                _features.erase(_features.begin() + i);
+                return true;
+            }
+        }
+        return false;
+    }    
 };

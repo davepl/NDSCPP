@@ -112,6 +112,7 @@ inline void to_json(nlohmann::json& j, const ILEDFeature & feature)
 {
     j = {
             {"type", "LEDFeature"},
+            {"id", feature.Id()},
             {"hostName", feature.Socket().HostName()},
             {"friendlyName", feature.Socket().FriendlyName()},
             {"port", feature.Socket().Port()},
@@ -168,6 +169,7 @@ inline void to_json(nlohmann::json& j, const ICanvas & canvas)
 {
     j = {
         {"name", canvas.Name()},
+        {"id", canvas.Id()},
         {"width", canvas.Graphics().Width()},
         {"height", canvas.Graphics().Height()},
         {"fps", canvas.Effects().GetFPS()},
@@ -217,15 +219,14 @@ inline void to_json(nlohmann::json &j, const ISocketChannel & socket)
         j["queueMaxSize"] = socket.GetQueueMaxSize();
         j["bytesPerSecond"] = socket.GetLastBytesPerSecond();
         j["port"] = socket.Port();
+        j["id"] = socket.Id();
         
         // Note: featureId and canvasId can't be included here since they're not
         // properties of the socket itself but rather of its container objects
 
         const auto &lastResponse = socket.LastClientResponse();
         if (lastResponse.size == sizeof(ClientResponse))
-        {
             j["stats"] = lastResponse; // Uses the ClientResponse serializer
-        }
     }
     catch (const std::exception &e)
     {
@@ -240,5 +241,25 @@ inline void from_json(const nlohmann::json& j, unique_ptr<ISocketChannel>& socke
         j.at("friendlyName").get<string>(),
         j.value("port", uint16_t(49152))
     );
+}
+
+inline void to_json(nlohmann::json &j, const IController &controller)
+{
+    try
+    {
+        j["port"] = controller.GetPort();
+        j["canvases"] = nlohmann::json::array();
+        
+        for (const auto * ptrCanvas : controller.Canvases())
+        {
+            nlohmann::json canvasJson;
+            to_json(canvasJson, *ptrCanvas);           // Uses the Canvas serializer
+            j["canvases"].push_back(canvasJson);
+        }
+    }
+    catch (const std::exception &e)
+    {
+        j = nullptr;
+    }
 }
 

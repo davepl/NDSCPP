@@ -32,14 +32,14 @@ private:
         // Open the input file
         if (avformat_open_input(&_formatCtx, _filePath.c_str(), nullptr, nullptr) != 0)
         {
-            std::cerr << "Failed to open video file: " << _filePath << std::endl;
+            logger->error("Failed to open video file: {}", _filePath);
             return false;
         }
 
         // Retrieve stream information
         if (avformat_find_stream_info(_formatCtx, nullptr) < 0)
         {
-            std::cerr << "Failed to retrieve stream info." << std::endl;
+            logger->error("Failed to retrieve stream info.");
             return false;
         }
 
@@ -55,7 +55,7 @@ private:
 
         if (_videoStreamIndex == -1)
         {
-            std::cerr << "No video stream found." << std::endl;
+            logger->error("No video stream found.");
             return false;
         }
 
@@ -63,7 +63,7 @@ private:
         const AVCodec* codec = avcodec_find_decoder(_formatCtx->streams[_videoStreamIndex]->codecpar->codec_id);
         if (!codec)
         {
-            std::cerr << "Codec not found." << std::endl;
+            logger->error("Codec not found.");
             return false;
         }
 
@@ -71,20 +71,20 @@ private:
         _codecCtx = avcodec_alloc_context3(codec);
         if (!_codecCtx)
         {
-            std::cerr << "Failed to allocate codec context." << std::endl;
+            logger->error("Failed to allocate codec context.");
             return false;
         }
 
         if (avcodec_parameters_to_context(_codecCtx, _formatCtx->streams[_videoStreamIndex]->codecpar) < 0)
         {
-            std::cerr << "Failed to copy codec parameters to context." << std::endl;
+            logger->error("Failed to copy codec parameters to context.");
             return false;
         }
 
         // Open the codec
         if (avcodec_open2(_codecCtx, codec, nullptr) < 0)
         {
-            std::cerr << "Failed to open codec." << std::endl;
+            logger->error("Failed to open codec.");
             return false;
         }
 
@@ -98,11 +98,20 @@ private:
 
     void CleanupFFmpeg()
     {
-        if (_swsCtx) sws_freeContext(_swsCtx);
-        if (_frame) av_frame_free(&_frame);
-        if (_packet) av_packet_free(&_packet);
-        if (_codecCtx) avcodec_free_context(&_codecCtx);
-        if (_formatCtx) avformat_close_input(&_formatCtx);
+        if (_swsCtx) 
+            sws_freeContext(_swsCtx);
+
+        if (_frame) 
+            av_frame_free(&_frame);
+
+        if (_packet) 
+            av_packet_free(&_packet);
+
+        if (_codecCtx) 
+            avcodec_free_context(&_codecCtx);
+
+        if (_formatCtx) 
+            avformat_close_input(&_formatCtx);
     }
 
 public:
@@ -118,7 +127,7 @@ public:
     {
         if (!InitializeFFmpeg())
         {
-            std::cerr << "Failed to initialize FFmpeg for MP4 playback." << std::endl;
+            logger->error("Failed to initialize FFmpeg for MP4 playback.");
             return;
         }
 

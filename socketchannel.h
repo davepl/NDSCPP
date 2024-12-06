@@ -19,6 +19,7 @@ using namespace std;
 #include <poll.h>
 #include <fcntl.h>
 #include <cerrno>
+#include "global.h"
 #include "interfaces.h"
 #include "utilities.h"
 #include "pixeltypes.h"
@@ -285,6 +286,8 @@ public:
 
     void Start() override
     {
+        logger->debug("Starting socket channel for {} [{}]", _hostName, _friendlyName);
+
         lock_guard lock(_mutex);
         if (!_running)
         {
@@ -295,6 +298,7 @@ public:
 
     void Stop() override
     {
+        logger->debug("Stopping socket channel for {} [{}]", _hostName, _friendlyName);
         {
             lock_guard lock(_mutex);
             _running = false;
@@ -371,7 +375,7 @@ bool EnqueueFrame(vector<uint8_t>&& frameData) override
 
     if (isQueueFull)
     {
-        cout << "Queue is full at " << _hostName << " [" << _friendlyName << "] dropping frame and resetting socket" << endl;
+        logger->warn("Queue is full at {} [{}] dropping frame and resetting socket", _hostName, _friendlyName);
         CloseSocket();
         EmptyQueue();
         return false;
@@ -417,9 +421,8 @@ private:
                         tempCount++;
                         queueCopy.pop();
                     }
-                    if (tempBytes > 0) {
+                    if (tempBytes > 0) 
                         combinedBuffer.reserve(tempBytes);
-                    }
                 }
 
                 if (!_frameQueue.empty() && (_frameQueue.size() >= kMaxBatchSize || bTimeToSend))
@@ -438,7 +441,7 @@ private:
 
                 if (packetCount > 0)
                 {
-                    // cout << "Sending " << packetCount << " packets totalling " << totalBytes << " bytes" << " at queue size " << _frameQueue.size() << " to " << _hostName << endl;
+                    logger->debug("Sending {} packets to {} [{}]", packetCount, _hostName, _friendlyName);
 
                     if (!combinedBuffer.empty())
                     {
@@ -456,7 +459,7 @@ private:
             }
             catch (const exception& e)
             {
-                cerr << "WorkerLoop exception: " << e.what() << endl;
+                logger->warn("SocketChannel WorkerLoop exception: {}", e.what());
                 CloseSocket();
                 
                 // Wait before attempting to reconnect
@@ -506,6 +509,7 @@ private:
                     }
                 }
 
+                logger->warn("Invalid byte count reading response from {} [{}]", _hostName, _friendlyName);
                 // Invalid byte count; eat the contents
                 vector<uint8_t> tempBuffer(byteCount);
                 recv(_socketFd, tempBuffer.data(), byteCount, 0);
@@ -523,7 +527,7 @@ private:
                 lastResponse = response;
                 continue;  // Check for more data
             }
-
+            logger->warn("Error reading response from {} [{}]", _hostName, _friendlyName);
             break;  // Error reading data
         }
 
@@ -558,7 +562,7 @@ private:
             setsockopt(socketFd, IPPROTO_TCP, TCP_KEEPIDLE, &keepidle, sizeof(keepidle)) < 0 ||
             setsockopt(socketFd, IPPROTO_TCP, TCP_KEEPINTVL, &keepintvl, sizeof(keepintvl)) < 0)
         {
-            cerr << "Could not set keepalive options for " << _friendlyName << endl;
+            logger->warn("Could not set keepalive options for {} [{}]", _hostName, _friendlyName);
             return false;
         }           
 
@@ -568,7 +572,7 @@ private:
 
         if (setsockopt(socketFd, SOL_SOCKET, SO_SNDTIMEO, &timeouttv, sizeof(timeouttv)) < 0)
         {
-            cerr << "Could not set TCP send timeout for " << _friendlyName << endl;
+            logger->warn("Could not set TCP send timeout for {} [{}]", _hostName, _friendlyName);
             return false;
         }
 
@@ -579,6 +583,7 @@ private:
     {
         if (_socketFd == -1 && !ConnectSocket())
         {
+            logger->warn("Could not connect to {} [{}] in SendFrame", _hostName, _friendlyName);
             lock_guard lock(_mutex);
             _isConnected = false;
             return nullopt;
@@ -604,6 +609,8 @@ private:
             {
                 if (errno == EPIPE)
                 {
+                    logger->debug("EPIPE error for {} [{}]", _hostName, _friendlyName);
+
                     CloseSocket();
                     if (!ConnectSocket()) 
                         return nullopt;
@@ -615,7 +622,7 @@ private:
                     this_thread::sleep_for(100ms);
                     continue;
                 }
-                cerr << "Socket timed out for " << _hostName << " [" << _friendlyName << "] errno=" << errno << endl;
+                logger->warn("Socket timed out for {} [{}] errno={}", _hostName, _friendlyName, errno);
 
                 CloseSocket();
                 return nullopt;
@@ -634,6 +641,8 @@ private:
 
     bool ConnectSocket()
     {
+        logger->debug("Attempting to connect to {} [{}]", _hostName, _friendlyName);
+
         _lastConnectionAttempt = system_clock::now();
         
         int tempSocket = socket(AF_INET, SOCK_STREAM, 0);
@@ -647,6 +656,7 @@ private:
 
         if (inet_pton(AF_INET, _hostName.c_str(), &serverAddr.sin_addr) <= 0)
         {
+            logger->warn("Invalid address for {} [{}]", _hostName, _friendlyName);
             close(tempSocket);
             return false;
         }
@@ -654,7 +664,7 @@ private:
         // Set socket options (non-blocking, keepalive, send timeout)
         if (!SetSocketOptions(tempSocket))
         {
-            cerr << "Could not set socket options for " << _friendlyName << endl;
+            logger->warn("Could not set socket options for {} [{}]", _hostName, _friendlyName);
             close(tempSocket);
             return false;
         }
@@ -665,7 +675,7 @@ private:
         {
             if (errno != EINPROGRESS)
             {
-                cerr << "Could not connect to " << _hostName << " [" << _friendlyName << "] errno=" << errno << endl;
+                logger->warn("Could not connect to {} [{}] errno={}", _hostName, _friendlyName, errno);
                 close(tempSocket);
                 return false;
             }
@@ -677,7 +687,7 @@ private:
             
             if (poll(&pfd, 1, kConnectTimeout.count()) <= 0)
             {
-                cerr << "Connection timeout to " << _hostName << " [" << _friendlyName << "]" << endl;
+                logger->warn("Connection timeout to {} [{}]", _hostName, _friendlyName);
                 close(tempSocket);
                 return false;
             }
@@ -693,13 +703,14 @@ private:
         }
 
         _reconnectCount++;
-        cout << "Connection number " << _reconnectCount << " to " << _hostName << ":" << _port << " [" << _friendlyName << "] on thread " << this_thread::get_id() << endl; 
+        logger->info("Connection number {} to {}:{} [{}]", _reconnectCount, _hostName, _port, _friendlyName);
         _socketFd = tempSocket;
         return true;
     }
 
     void EmptyQueue()
     {
+        logger->debug("Emptying queue for {} [{}]", _hostName, _friendlyName);
         scoped_lock lock(_mutex, _queueMutex);
         queue<vector<uint8_t>> empty;
         _frameQueue.swap(empty);
@@ -708,6 +719,7 @@ private:
 
     void CloseSocket()
     {
+        logger->debug("Closing socket for {} [{}]", _hostName, _friendlyName);
         lock_guard lock(_mutex);  // Add lock    
         if (_socketFd != -1)
         {
