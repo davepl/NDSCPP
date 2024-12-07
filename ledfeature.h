@@ -146,12 +146,13 @@ public:
         if (_reversed)
         {
             // In-place reversal of RGB groups
-            for (size_t i = 0; i < result.size() / 2; i += sizeof(CRGB))
-            {
-                size_t j = result.size() - i - sizeof(CRGB);
-                std::swap(result[i], result[j]);
-                std::swap(result[i + 1], result[j + 1]);
-                std::swap(result[i + 2], result[j + 2]);
+            const size_t numPixels = result.size() / 3;
+            for (size_t i = 0; i < numPixels / 2; ++i) {
+                size_t front = i * 3;
+                size_t back = (numPixels - 1 - i) * 3;
+                std::swap(result[front], result[back]);
+                std::swap(result[front + 1], result[back + 1]);
+                std::swap(result[front + 2], result[back + 2]);
             }
         }
 

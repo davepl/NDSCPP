@@ -31,6 +31,7 @@ public:
 
     virtual void ToJson(nlohmann::json& j) const override
     {
+        j["name"] = _name;
     }
 
     /*

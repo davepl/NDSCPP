@@ -31,11 +31,11 @@ private:
         }
     };
 
-    vector<unique_ptr<ICanvas>> &_allCanvases; // Reference to all canvases
+    IController & _controller; // Reference to all canvases
     crow::App<HeaderMiddleware> _crowApp;
 
 public:
-    WebServer(vector<unique_ptr<ICanvas>> &allCanvases) : _allCanvases(allCanvases)
+    WebServer(IController & controller) : _controller(controller)
     {
     }
 
@@ -45,144 +45,121 @@ public:
 
     void Start()
     {
-        // Define the `/api/sockets` endpoint
-        CROW_ROUTE(_crowApp, "/api/sockets")
+        // The main controller, the most info you can get in a single call
+
+        CROW_ROUTE(_crowApp, "/api/controller")
             .methods(crow::HTTPMethod::GET)([&]() -> crow::response
             {
-                auto socketsJson = nlohmann::json::array();
-                
-                for (size_t canvasId = 0; canvasId < _allCanvases.size(); ++canvasId) {
-                    if (!_allCanvases[canvasId]) {
-                        continue;
-                    }
+                nlohmann::json response;
+                response["controller"] = _controller;
+                return response.dump();
 
-                    for (size_t featureId = 0; featureId < _allCanvases[canvasId]->Features().size(); ++featureId) {
-                        nlohmann::json socketJson = _allCanvases[canvasId]->Features()[featureId]->Socket();
-                        socketJson["featureId"] = featureId;
-                        socketJson["canvasId"] = _allCanvases[canvasId]->Id();
-                        socketsJson.push_back(socketJson);
-                    }
-                }
-                
-                return socketsJson.dump(); 
             });
 
-        // Define the `/api/sockets/:id` endpoint
+        // Enumerate just the sockets
+
+        CROW_ROUTE(_crowApp, "/api/sockets")
+            .methods(crow::HTTPMethod::GET)([&]()
+            {
+                auto socketsJson = nlohmann::json::array();
+                for (const auto &socket : _controller.GetSockets())
+                    socketsJson.push_back(socket); // Assumes `to_json` is defined for `socket`
+                return crow::response(socketsJson.dump());
+            });
+
+
+        // Detail a single socket
+
         CROW_ROUTE(_crowApp, "/api/sockets/<int>")
             .methods(crow::HTTPMethod::GET)([&](int socketId) -> crow::response
             {
-                // Search through all canvases and features to find the matching socket
-                for (size_t canvasId = 0; canvasId < _allCanvases.size(); ++canvasId) {
-                    if (!_allCanvases[canvasId]) {
-                        continue;
-                    }
-
-                    for (size_t featureId = 0; featureId < _allCanvases[canvasId]->Features().size(); ++featureId) {
-                        const auto& feature = _allCanvases[canvasId]->Features()[featureId];
-                        
-                        // Check if this socket matches the requested ID
-                        if (feature->Socket().Id() == socketId) {
-                            nlohmann::json socketJson = feature->Socket();
-                            
-                            // Add the contextual fields
-                            socketJson["featureId"] = featureId;
-                            socketJson["canvasId"] = _allCanvases[canvasId]->Id();
-
-                            return socketJson.dump();
-                        }
-                    }
-                }
-                
-                // If we didn't find the socket, return a 404
-                return {crow::NOT_FOUND, R"({"error": "Socket not found"})"}; 
+                return crow::response(nlohmann::json(_controller.GetSocketById(socketId)).dump());
             });
+
+        // Enumerate all the canvases
 
         CROW_ROUTE(_crowApp, "/api/canvases")
-            .methods(crow::HTTPMethod::GET)([&]() -> crow::response
+            .methods(crow::HTTPMethod::GET)([&]()
             {
-                auto canvasesJson = nlohmann::json::array();
-                for (size_t i = 0; i < _allCanvases.size(); ++i)
-                {
-                    if (_allCanvases[i]) // Ensure the canvas pointer is valid
-                    {
-                        nlohmann::json canvasJson = *_allCanvases[i]; // Use the utility function
-                        canvasJson["id"] = i; // Add ID for reference
-                        canvasesJson.push_back(canvasJson);
-                    }
-                }
-                return canvasesJson.dump(); 
+                nlohmann::json canvasesJson = _controller.Canvases(); // Canvases() can be direcly serialized now
+                return crow::response(canvasesJson.dump());
             });
 
-        // Define the `/api/canvases/:id` endpoint
+        // Detail a single canvas
+
         CROW_ROUTE(_crowApp, "/api/canvases/<int>")
             .methods(crow::HTTPMethod::GET)([&](int id) -> crow::response
             {
-                if (id < 0 || id >= _allCanvases.size() || !_allCanvases[id])
+                auto allCanvases = _controller.Canvases();
+                if (id < 0 || id >= allCanvases.size())
                     return {crow::NOT_FOUND, R"({"error": "Canvas not found"})"};
 
-                nlohmann::json canvasJson = *_allCanvases[id]; // Use the utility function
-                canvasJson["id"] = id; // Include ID in the details
+                nlohmann::json canvasJson = allCanvases[id]; // Use the utility function
                 return canvasJson.dump(); 
             });
             
             // Create new canvas
             CROW_ROUTE(_crowApp, "/api/canvases")
-                .methods(crow::HTTPMethod::POST)([&](const crow::request& req) -> crow::response 
+                .methods(crow::HTTPMethod::POST)([&](const crow::request& req)
                 {
-                    auto reqJson = nlohmann::json::parse(req.body);
-                    
-                    size_t canvasId = _allCanvases.size();
-                    _allCanvases.push_back(reqJson.get<unique_ptr<ICanvas>>());
-                    
-                    nlohmann::json response;
-                    response["id"] = canvasId;
-                    return response.dump();
+                    try 
+                    {
+                        // Parse and deserialize JSON payload
+                        auto jsonPayload = nlohmann::json::parse(req.body);
+                        unique_ptr<ICanvas> newCanvas = nullptr;
+                        from_json(jsonPayload, newCanvas);
+
+                        // Add the canvas to the controller
+                        if (!_controller.AddCanvas(std::move(newCanvas)))
+                            return crow::response(400, "Error, likely canvas with that ID already exists.");
+                        return crow::response(201, "Canvas added successfully.");
+                    } 
+                    catch (const std::exception& e) 
+                    {
+                        return crow::response(400, std::string("Error: ") + e.what());
+                    }
                 });
+
+
 
             // Delete canvas
             CROW_ROUTE(_crowApp, "/api/canvases/<int>")
                 .methods(crow::HTTPMethod::DELETE)([&](int id) -> crow::response 
                 {
-                    if (id < 0 || id >= _allCanvases.size() || !_allCanvases[id])
-                        return {crow::NOT_FOUND, R"({"error": "Canvas not found"})"};
-                    
-                    _allCanvases[id].reset();
+                    _controller.DeleteCanvasById(id);
                     return crow::response(crow::OK);
                 });
 
             // Create feature and add to canvas
             CROW_ROUTE(_crowApp, "/api/canvases/<int>/features")
-                .methods(crow::HTTPMethod::POST)([&](const crow::request& req, int canvasId) -> crow::response 
+                .methods(crow::HTTPMethod::POST)([&](const crow::request& req, int canvasId)
                 {
-                    if (canvasId < 0 || canvasId >= _allCanvases.size() || !_allCanvases[canvasId])
-                        return {crow::NOT_FOUND, R"({"error": "Canvas not found"})"};
-                    
-                    auto reqJson = nlohmann::json::parse(req.body);
-                    
-                    size_t featureId = _allCanvases[canvasId]->Features().size();
-                    _allCanvases[canvasId]->AddFeature(reqJson.get<unique_ptr<ILEDFeature>>());
-                    
-                    nlohmann::json response;
-                    response["id"] = featureId;
-                    return response.dump();
+                    try 
+                    {
+                        auto reqJson = nlohmann::json::parse(req.body);
+                        auto feature = reqJson.get<std::unique_ptr<ILEDFeature>>();
+                        auto newId = _controller.Canvases()[canvasId].get().AddFeature(std::move(feature));
+                        return crow::response(nlohmann::json{{"id", newId}}.dump());
+                    } 
+                    catch (const std::exception& e) 
+                    {
+                        return crow::response(400, std::string("Error: ") + e.what());
+                    }
                 });
+
 
             // Delete feature from canvas
             CROW_ROUTE(_crowApp, "/api/canvases/<int>/features/<int>")
-                .methods(crow::HTTPMethod::DELETE)([&](int canvasId, int featureId) -> crow::response {
-                    if (canvasId < 0 || canvasId >= _allCanvases.size() || !_allCanvases[canvasId])
-                        return {crow::NOT_FOUND, R"({"error": "Canvas not found"})"};
-                        
-                    auto& features = _allCanvases[canvasId]->Features();
-                    if (featureId < 0 || featureId >= features.size())
-                        return {crow::NOT_FOUND, R"({"error": "Feature not found"})"};
-                        
-                    _allCanvases[canvasId]->RemoveFeature(features[featureId]);
+                .methods(crow::HTTPMethod::DELETE)([&](int canvasId, int featureId) -> crow::response 
+                {
+                    _controller.GetCanvasById(canvasId).RemoveFeatureById(featureId);
+                    auto canvas = _controller.Canvases()[canvasId];
+                    canvas.get().RemoveFeatureById(featureId);
                     return crow::response(crow::OK);
                 });
                 
         // Start the server
-        _crowApp.port(7777).multithreaded().run();
+        _crowApp.port(_controller.GetPort()).multithreaded().run();
     }
 
     void Stop()

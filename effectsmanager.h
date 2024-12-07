@@ -29,18 +29,18 @@ public:
         Stop(); // Ensure the worker thread is stopped when the manager is destroyed
     }
 
-    void SetFPS(uint16_t fps)
+    void SetFPS(uint16_t fps) override
     {
         _fps = fps;
     }
 
-    uint16_t GetFPS() const
+    uint16_t GetFPS() const override
     {
         return _fps;
     }
 
     // Add an effect to the manager
-    void AddEffect(unique_ptr<ILEDEffect> effect)
+    void AddEffect(unique_ptr<ILEDEffect> effect) override
     {
         if (!effect)
             throw invalid_argument("Cannot add a null effect.");
@@ -52,7 +52,7 @@ public:
     }
 
     // Remove an effect from the manager
-    void RemoveEffect(unique_ptr<ILEDEffect> & effect)
+    void RemoveEffect(unique_ptr<ILEDEffect> & effect) override
     {
         if (!effect)
             throw invalid_argument("Cannot remove a null effect.");
@@ -74,13 +74,13 @@ public:
     }
 
     // Start the current effect
-    void StartCurrentEffect(ICanvas& canvas)
+    void StartCurrentEffect(ICanvas& canvas) override
     {
         if (IsEffectSelected())
             _effects[_currentEffectIndex]->Start(canvas);
     }
 
-    void SetCurrentEffect(size_t index, ICanvas& canvas)
+    void SetCurrentEffect(size_t index, ICanvas& canvas) override
     {
         if (index >= _effects.size())
             throw out_of_range("Effect index out of range.");
@@ -91,28 +91,28 @@ public:
    }
 
     // Update the current effect and render it to the canvas
-    void UpdateCurrentEffect(ICanvas& canvas, milliseconds millisDelta)
+    void UpdateCurrentEffect(ICanvas& canvas, milliseconds millisDelta) override
     {
         if (IsEffectSelected())
             _effects[_currentEffectIndex]->Update(canvas, millisDelta);
     }
 
     // Switch to the next effect
-    void NextEffect()
+    void NextEffect() override
     {
         if (!_effects.empty())
             _currentEffectIndex = (_currentEffectIndex + 1) % _effects.size();
     }
 
     // Switch to the previous effect
-    void PreviousEffect()
+    void PreviousEffect() override
     {
         if (!_effects.empty())
             _currentEffectIndex = (_currentEffectIndex == 0) ? _effects.size() - 1 : _currentEffectIndex - 1;
     }
 
     // Get the name of the current effect
-    string CurrentEffectName() const
+    string CurrentEffectName() const override
     {
         if (IsEffectSelected())
             return _effects[_currentEffectIndex]->Name();
@@ -120,15 +120,19 @@ public:
     }
 
     // Clear all effects
-    void ClearEffects()
+
+    void ClearEffects() override
     {
         _effects.clear();
         _currentEffectIndex = -1;
     }
 
     // Start the worker thread to update effects
-    void Start(ICanvas& canvas)
+    
+    void Start(ICanvas& canvas) override
     {
+        logger->debug("Starting effects manager with {} effects at {} FPS", _effects.size(), _fps);
+
         if (_running.exchange(true))
             return; // Already running
 
@@ -144,15 +148,15 @@ public:
                 UpdateCurrentEffect(canvas, frameDuration);
                 for (const auto &feature : canvas.Features())
                 {
-                    auto frame = feature->GetDataFrame();
+                    auto frame = feature.get().GetDataFrame();
                     if (bUseCompression)
                     {
-                        auto compressedFrame = feature->Socket().CompressFrame(frame);
-                        feature->Socket().EnqueueFrame(std::move(compressedFrame));
+                        auto compressedFrame = feature.get().Socket().CompressFrame(frame);
+                        feature.get().Socket().EnqueueFrame(std::move(compressedFrame));
                     }
                     else
                     {
-                        feature->Socket().EnqueueFrame(std::move(frame));
+                        feature.get().Socket().EnqueueFrame(std::move(frame));
                     }
                 }
 
@@ -171,8 +175,9 @@ public:
     }
 
     // Stop the worker thread
-    void Stop()
+    void Stop() override
     {
+        logger->debug("Stopping effects manager");
         if (!_running.exchange(false))
             return; // Not running
 

@@ -52,7 +52,7 @@ inline void to_json(nlohmann::json& j, const Palette & palette)
     };
 }
 
-inline void from_json(const nlohmann::json& j, Palette & palette) 
+inline void from_json(const nlohmann::json& j, std::unique_ptr<Palette>& palette) 
 {
     // Deserialize the "colors" array
     std::vector<CRGB> colors;
@@ -62,8 +62,8 @@ inline void from_json(const nlohmann::json& j, Palette & palette)
     // Deserialize the "blend" flag, defaulting to true if not present
     bool blend = j.value("blend", true);
 
-    // Assign to palette (Palette must allow reassignment)
-    palette = Palette(colors, blend);
+    // Create new Palette
+    palette = std::make_unique<Palette>(colors, blend);
 }
 
 //
@@ -112,6 +112,7 @@ inline void to_json(nlohmann::json& j, const ILEDFeature & feature)
 {
     j = {
             {"type", "LEDFeature"},
+            {"id", feature.Id()},
             {"hostName", feature.Socket().HostName()},
             {"friendlyName", feature.Socket().FriendlyName()},
             {"port", feature.Socket().Port()},
@@ -168,6 +169,7 @@ inline void to_json(nlohmann::json& j, const ICanvas & canvas)
 {
     j = {
         {"name", canvas.Name()},
+        {"id", canvas.Id()},
         {"width", canvas.Graphics().Width()},
         {"height", canvas.Graphics().Height()},
         {"fps", canvas.Effects().GetFPS()},
@@ -176,18 +178,19 @@ inline void to_json(nlohmann::json& j, const ICanvas & canvas)
 
     // Add features array
     auto featuresJson = nlohmann::json::array();
-    for (const auto& feature : canvas.Features()) {
+    for (const auto& feature : canvas.Features()) 
+    {
         nlohmann::json featureJson;
-        to_json(featureJson, *feature);
+        to_json(featureJson, feature);
         featuresJson.push_back(featureJson);
     }
     j["features"] = featuresJson;
 }
 
-inline void from_json(const nlohmann::json& j, std::unique_ptr<ICanvas>& canvas) 
+inline void from_json(const nlohmann::json& j, unique_ptr<ICanvas>& canvas) 
 {
     // Create canvas with required fields
-    canvas = std::make_unique<Canvas>(
+    canvas = make_unique<Canvas>(
         j.at("name").get<std::string>(),
         j.at("width").get<uint32_t>(),
         j.at("height").get<uint32_t>(),
@@ -197,7 +200,7 @@ inline void from_json(const nlohmann::json& j, std::unique_ptr<ICanvas>& canvas)
     // Deserialize features if present
     if (j.contains("features")) {
         for (const auto& featureJson : j["features"])
-            canvas->AddFeature(featureJson.get<std::unique_ptr<ILEDFeature>>());
+            canvas->AddFeature(featureJson.get<unique_ptr<ILEDFeature>>());
     }
 }
 
@@ -217,15 +220,14 @@ inline void to_json(nlohmann::json &j, const ISocketChannel & socket)
         j["queueMaxSize"] = socket.GetQueueMaxSize();
         j["bytesPerSecond"] = socket.GetLastBytesPerSecond();
         j["port"] = socket.Port();
+        j["id"] = socket.Id();
         
         // Note: featureId and canvasId can't be included here since they're not
         // properties of the socket itself but rather of its container objects
 
         const auto &lastResponse = socket.LastClientResponse();
         if (lastResponse.size == sizeof(ClientResponse))
-        {
             j["stats"] = lastResponse; // Uses the ClientResponse serializer
-        }
     }
     catch (const std::exception &e)
     {
@@ -242,3 +244,76 @@ inline void from_json(const nlohmann::json& j, unique_ptr<ISocketChannel>& socke
     );
 }
 
+inline void to_json(nlohmann::json &j, const IController &controller)
+{
+    try
+    {
+        j["port"] = controller.GetPort();
+        j["canvases"] = nlohmann::json::array();
+        
+        for (const auto ptrCanvas : controller.Canvases())
+        {
+            nlohmann::json canvasJson;
+            to_json(canvasJson, ptrCanvas);           // Uses the Canvas serializer
+            j["canvases"].push_back(canvasJson);
+        }
+    }
+    catch (const std::exception &e)
+    {
+        j = nullptr;
+    }
+}
+
+// I've run into the same dependency loop issue again here... I'm not sure how to resolve it!
+// I think I need to move the from_json function to a separate file, but I know you want to keep
+// it here likely.  It can go right into Controller.h nicely though....
+
+#include "controller.h"
+
+inline void from_json(const nlohmann::json &j, unique_ptr<Controller> & ptrController) 
+{
+    try 
+    {
+        // Extract port
+        uint16_t port = j.at("port").get<uint16_t>();
+
+        // Create controller
+        ptrController = std::make_unique<Controller>(port);
+
+        // Extract canvases
+        for (const auto &canvasJson : j.at("canvases")) {
+            auto canvas = std::make_unique<Canvas>(
+                canvasJson.at("name").get<std::string>(),
+                canvasJson.at("width").get<uint16_t>(),
+                canvasJson.at("height").get<uint16_t>(),
+                canvasJson.at("fps").get<uint16_t>()
+            );
+
+            // Extract features for each canvas
+            for (const auto &featureJson : canvasJson.at("features")) {
+                auto feature = std::make_unique<LEDFeature>(
+                    canvas.get(),
+                    featureJson.at("hostName").get<std::string>(),
+                    featureJson.at("friendlyName").get<std::string>(),
+                    featureJson.at("port").get<uint16_t>(),
+                    featureJson.at("width").get<uint16_t>(),
+                    featureJson.at("height").get<uint16_t>(),
+                    featureJson.at("offsetX").get<uint16_t>(),
+                    featureJson.at("offsetY").get<uint16_t>(),
+                    featureJson.at("reversed").get<bool>(),
+                    featureJson.at("channel").get<uint8_t>(),
+                    featureJson.at("redGreenSwap").get<bool>(),
+                    featureJson.at("clientBufferCount").get<uint16_t>()
+                );
+
+                canvas->AddFeature(std::move(feature));
+            }
+
+            ptrController->AddCanvas(std::move(canvas));
+        }
+    } 
+    catch (const std::exception &e) 
+    {
+        throw std::runtime_error("Error parsing JSON for Controller: " + std::string(e.what()));
+    }
+}

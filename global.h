@@ -7,8 +7,12 @@ using namespace chrono;
 // This file contains global definitions and includes that are used throughout the project.
 
 #include <string>
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_color_sinks.h> // For colored console output
 #include "utilities.h"
 #include "secrets.h"
+
+extern shared_ptr<spdlog::logger> logger;
 
 // arraysize
 //

@@ -101,11 +101,12 @@ public:
 
     void ToJson(nlohmann::json& j) const override
     {
-        j = 
-        {
+        to_json(j["palette"], _Palette);  // Use existing palette serializer
+        
+        j = {
             {"type", "PaletteEffect"},
             {"name", Name()},
-            {"palette", _Palette}, // Assuming Palette has a ToJson method or serializer
+            {"palette", j["palette"]},
             {"ledColorPerSecond", _LEDColorPerSecond},
             {"ledScrollSpeed", _LEDScrollSpeed},
             {"density", _Density},

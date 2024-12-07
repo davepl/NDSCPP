@@ -5,7 +5,7 @@ INCLUDES = -I.
 LDFLAGS =
 
 # Libraries needed
-LIBS = -lncurses -lcurl
+LIBS = -lncurses -lcurl -lfmt
 
 # Binary name
 TARGET = ledmon

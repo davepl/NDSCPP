@@ -28,7 +28,8 @@ public:
     Palette(const Palette& other) 
         : _colorEntries(other._colorEntries)
         , _bBlend(other._bBlend)
-    {}
+    {
+    }
 
     Palette& operator=(const Palette& other) 
     {

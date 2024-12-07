@@ -190,33 +190,6 @@ public:
         return combined;
     }
 
-    // Gets color bytes at a specific offset, handling reversing and RGB swapping
-    static vector<uint8_t> GetColorBytesAtOffset(const vector<CRGB> &LEDs, uint32_t offset, uint32_t count, bool reversed, bool redGreenSwap)
-    {
-        vector<uint8_t> colorBytes;
-        if (offset >= LEDs.size())
-        {
-            return colorBytes;
-        }
-
-        uint32_t end = min(offset + count, static_cast<uint32_t>(LEDs.size()));
-        if (reversed)
-        {
-            for (int32_t i = end - 1; i >= static_cast<int32_t>(offset); --i)
-            {
-                AppendColorBytes(colorBytes, LEDs[i], redGreenSwap);
-            }
-        }
-        else
-        {
-            for (uint32_t i = offset; i < end; ++i)
-            {
-                AppendColorBytes(colorBytes, LEDs[i], redGreenSwap);
-            }
-        }
-        return colorBytes;
-    }
-
     static vector<uint8_t> Compress(const vector<uint8_t> &data)
     {
         // Allocate initial buffer size
@@ -266,23 +239,6 @@ public:
         compressedData.resize(stream.total_out);
 
         return compressedData;
-    }
-
-private:
-    // Helper to append color bytes to a vector
-    static void AppendColorBytes(vector<uint8_t> &bytes, const CRGB &color, bool redGreenSwap)
-    {
-        if (redGreenSwap)
-        {
-            bytes.push_back(color.g);
-            bytes.push_back(color.r);
-        }
-        else
-        {
-            bytes.push_back(color.r);
-            bytes.push_back(color.g);
-        }
-        bytes.push_back(color.b);
     }
 };
 
