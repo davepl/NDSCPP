@@ -30,21 +30,23 @@ public:
         canvas.Graphics().Clear(_color);
     }
 
-    void ToJson(nlohmann::json& j) const override
-    {
-        j = {
-            {"type", "SolidColorFill"},
-            {"name", Name()},
-            {"color", _color} // Assumes `to_json` for CRGB is already defined
-        };
-    }
+    friend inline void to_json(nlohmann::json& j, const SolidColorFill & effect);
+    friend inline void from_json(const nlohmann::json& j, unique_ptr<SolidColorFill>& effect);
+};
 
-    static unique_ptr<SolidColorFill> FromJson(const nlohmann::json& j)
-    {
-        return make_unique<SolidColorFill>(
+inline void to_json(nlohmann::json& j, const SolidColorFill & effect) 
+{
+    j = {
+        {"type", "SolidColorFill"},
+        {"name", effect.Name()},
+        {"color", effect._color} // Assumes `to_json` for CRGB is already defined
+    };
+}
+
+inline void from_json(const nlohmann::json& j, unique_ptr<SolidColorFill>& effect) 
+{
+    effect = make_unique<SolidColorFill>(
             j.at("name").get<string>(),
             j.at("color").get<CRGB>() // Assumes `from_json` for CRGB is already defined
         );
-    }
-
-};
+}

@@ -98,45 +98,40 @@ public:
         }
     }
 
-    void ToJson(nlohmann::json& j) const override
-    {
-        to_json(j["palette"], _Palette);  // Use existing palette serializer
-        
-        j = {
-            {"type", "PaletteEffect"},
-            {"name", Name()},
-            {"palette", j["palette"]},
-            {"ledColorPerSecond", _LEDColorPerSecond},
-            {"ledScrollSpeed", _LEDScrollSpeed},
-            {"density", _Density},
-            {"everyNthDot", _EveryNthDot},
-            {"dotSize", _DotSize},
-            {"rampedColor", _RampedColor},
-            {"brightness", _Brightness},
-            {"mirrored", _Mirrored}
-        };
-    }
-
-    static unique_ptr<PaletteEffect> FromJson(const nlohmann::json& j)
-    {
-        // Extract colors from the nested "palette" object
-        vector<CRGB> colors = j.at("palette").at("colors").get<vector<CRGB>>();
-        bool blend = j.at("palette").at("blend").get<bool>();
-
-        return make_unique<PaletteEffect>(
-            j.at("name").get<string>(),
-            colors,
-            j.at("ledColorPerSecond").get<double>(),
-            j.at("ledScrollSpeed").get<double>(),
-            j.at("density").get<double>(),
-            j.at("everyNthDot").get<double>(),
-            j.at("dotSize").get<uint32_t>(),
-            j.at("rampedColor").get<bool>(),
-            j.at("brightness").get<double>(),
-            j.at("mirrored").get<bool>(),
-            blend  // Pass the blend flag
-        );
-    }
-
-
+    friend inline void to_json(nlohmann::json& j, const PaletteEffect & effect);
+    friend inline void from_json(const nlohmann::json& j, unique_ptr<PaletteEffect>& effect);
 };
+
+inline void to_json(nlohmann::json& j, const PaletteEffect & effect) 
+{
+    j = {
+            {"type",              "PaletteEffect"},
+            {"name",              effect.Name()},
+            {"palette",           effect._Palette},
+            {"ledColorPerSecond", effect._LEDColorPerSecond},
+            {"ledScrollSpeed",    effect._LEDScrollSpeed},
+            {"density",           effect._Density},
+            {"everyNthDot",       effect._EveryNthDot},
+            {"dotSize",           effect._DotSize},
+            {"rampedColor",       effect._RampedColor},
+            {"brightness",        effect._Brightness},
+            {"mirrored",          effect._Mirrored}
+        };
+}
+
+inline void from_json(const nlohmann::json& j, unique_ptr<PaletteEffect>& effect) 
+{
+    effect = make_unique<PaletteEffect>(
+        j.at("name").get<string>(),
+        j.at("palette").at("colors").get<vector<CRGB>>(),
+        j.at("ledColorPerSecond").get<double>(),
+        j.at("ledScrollSpeed").get<double>(),
+        j.at("density").get<double>(),
+        j.at("everyNthDot").get<double>(),
+        j.at("dotSize").get<uint32_t>(),
+        j.at("rampedColor").get<bool>(),
+        j.at("brightness").get<double>(),
+        j.at("mirrored").get<bool>(),
+        j.at("palette").at("blend").get<bool>()
+    );
+}

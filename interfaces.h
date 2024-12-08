@@ -70,10 +70,6 @@ public:
 
     // Called to update the effect, given a canvas and timestamp
     virtual void Update(ICanvas& canvas, milliseconds deltaTime) = 0;
-
-    // Physician, serialize thyself!
-    virtual void ToJson(nlohmann::json& j) const = 0;
-
 };
 
 // IEffectsManager
@@ -90,6 +86,9 @@ public:
     virtual void RemoveEffect(unique_ptr<ILEDEffect> & effect) = 0;
     virtual void StartCurrentEffect(ICanvas& canvas) = 0;
     virtual void SetCurrentEffect(size_t index, ICanvas& canvas) = 0;
+    virtual size_t GetCurrentEffect() const = 0;
+    virtual size_t EffectCount() const = 0;
+    virtual vector<reference_wrapper<ILEDEffect>> Effects() const = 0;
     virtual void UpdateCurrentEffect(ICanvas& canvas, milliseconds millisDelta) = 0;
     virtual void NextEffect() = 0;
     virtual void PreviousEffect() = 0;

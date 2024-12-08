@@ -28,16 +28,5 @@ public:
     void Update(ICanvas& canvas, milliseconds deltaTime) override 
     {
     }
-
-    virtual void ToJson(nlohmann::json& j) const override
-    {
-        j["name"] = _name;
-    }
-
-    /*
-    static std::unique_ptr<LEDEffectBase> FromJson(const nlohmann::json& j)
-    {
-        return nullptr;
-    }
-    */
 };
+

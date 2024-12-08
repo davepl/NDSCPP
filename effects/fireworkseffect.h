@@ -159,24 +159,29 @@ public:
         _particles.swap(newParticles);
     }
 
-    void ToJson(nlohmann::json &j) const override
-    {
-        j ={
-                {"type", "Fireworks"},
-                {"name", Name()},
-                {"maxSpeed", _maxSpeed},
-                {"newParticleProbability", _newParticleProbability},
-                {"particlePreignitionTime", _particlePreignitionTime},
-                {"particleIgnition", _particleIgnition},
-                {"particleHoldTime", _particleHoldTime},
-                {"particleFadeTime", _particleFadeTime},
-                {"particleSize", _particleSize}
-            };
-    }
+    friend inline void to_json(nlohmann::json &j, const FireworksEffect &effect);
+    friend inline void from_json(const nlohmann::json &j, unique_ptr<FireworksEffect> &effect);
+   
+};
 
-    static unique_ptr<FireworksEffect> FromJson(const nlohmann::json &j)
-    {
-        auto effect = make_unique<FireworksEffect>(
+inline void to_json(nlohmann::json &j, const FireworksEffect &effect)
+{
+    j ={
+            {"type",                    "Fireworks"},
+            {"name",                    effect.Name()},
+            {"maxSpeed",                effect._maxSpeed},
+            {"newParticleProbability",  effect._newParticleProbability},
+            {"particlePreignitionTime", effect._particlePreignitionTime},
+            {"particleIgnition",        effect._particleIgnition},
+            {"particleHoldTime",        effect._particleHoldTime},
+            {"particleFadeTime",        effect._particleFadeTime},
+            {"particleSize",            effect._particleSize}
+        };
+}
+
+inline void from_json(const nlohmann::json &j, unique_ptr<FireworksEffect> &effect)
+{
+    effect = make_unique<FireworksEffect>(
             j.at("name").get<string>(),
             j.value("maxSpeed", 175.0),
             j.value("newParticleProbability", 1.0),
@@ -185,6 +190,5 @@ public:
             j.value("particleHoldTime", 0.0),
             j.value("particleFadeTime", 2.0),
             j.value("particleSize", 1.0));
-        return effect;
-    }
-};
+}
+

@@ -49,22 +49,26 @@ public:
         }
     }
 
-    void ToJson(nlohmann::json& j) const override
-    {
-        j = {
-            {"type", "ColorWave"},
-            {"name", Name()},
-            {"speed", _speed},
-            {"waveFrequency", _waveFrequency}
-        };
-    }
-
-    static unique_ptr<ColorWaveEffect> FromJson(const nlohmann::json& j) 
-    {
-        return make_unique<ColorWaveEffect>(
-            j.at("name").get<string>(),
-            j.value("speed", 0.5),
-            j.value("waveFrequency", 10.0)
-        );
-    }
+    friend inline void to_json(nlohmann::json& j, const ColorWaveEffect & effect);
+    friend inline void from_json(const nlohmann::json& j, unique_ptr<ColorWaveEffect>& effect);
 };
+
+inline void to_json(nlohmann::json& j, const ColorWaveEffect & effect) 
+{
+    j = {
+        {"type", "ColorWave"},
+        {"name", effect.Name()},
+        {"speed", effect._speed},
+        {"waveFrequency", effect._waveFrequency}
+    };
+}
+
+inline void from_json(const nlohmann::json& j, unique_ptr<ColorWaveEffect>& effect) 
+{
+    effect =  make_unique<ColorWaveEffect>(
+        j.at("name").get<string>(),
+        j.value("speed", 0.5),
+        j.value("waveFrequency", 10.0)
+    );
+}
+

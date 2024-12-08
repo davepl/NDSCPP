@@ -82,24 +82,6 @@ public:
         }
     }
 
-    void ToJson(nlohmann::json& j) const override
-    {
-        j = 
-        {
-            {"type", "Starfield"},
-            {"name", Name()},
-            {"starCount", _starCount}
-        };
-    }
-
-    static unique_ptr<StarfieldEffect> FromJson(const nlohmann::json& j)
-    {
-        return make_unique<StarfieldEffect>(
-            j.at("name").get<string>(),
-            j.value("starCount", 100)
-        );
-    }
-
 private:
     Star CreateRandomStar()
     {
@@ -145,4 +127,25 @@ private:
             color
         };
     }
+
+    friend inline void to_json(nlohmann::json& j, const StarfieldEffect & effect);
+    friend inline void from_json(const nlohmann::json& j, unique_ptr<StarfieldEffect>& effect);
 };
+
+inline void to_json(nlohmann::json& j, const StarfieldEffect & effect)
+{   
+    j = 
+    {
+        {"type", "Starfield"},
+        {"name", effect.Name()},
+        {"starCount", effect._starCount}
+    };
+}
+
+inline void from_json(const nlohmann::json& j, unique_ptr<StarfieldEffect>& effect)
+{
+    effect = make_unique<StarfieldEffect>(
+        j.at("name").get<string>(),
+        j.value("starCount", 100)
+    );
+}

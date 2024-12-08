@@ -109,6 +109,9 @@ public:
         }
         return false;
     }
+
+    friend void to_json(nlohmann::json& j, const ICanvas & canvas);
+    friend void from_json(const nlohmann::json& j, unique_ptr<ICanvas>& canvas);
 };
 
 inline void to_json(nlohmann::json& j, const ICanvas & canvas) 
@@ -119,15 +122,10 @@ inline void to_json(nlohmann::json& j, const ICanvas & canvas)
         {"width", canvas.Graphics().Width()},
         {"height", canvas.Graphics().Height()},
         {"fps", canvas.Effects().GetFPS()},
-        {"currentEffectName", canvas.Effects().CurrentEffectName()}
+        {"currentEffectName", canvas.Effects().CurrentEffectName()},
+        {"features", canvas.Features()},
+        {"effects", canvas.Effects()}
     };
-
-    // Add features array
-    auto featuresJson = nlohmann::json::array();
-    for (const auto& feature : canvas.Features()) 
-        featuresJson.push_back(feature);
-
-    j["features"] = featuresJson;
 }
 
 inline void from_json(const nlohmann::json& j, unique_ptr<ICanvas>& canvas) 
