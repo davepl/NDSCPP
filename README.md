@@ -59,6 +59,33 @@ On Ubuntu, dev versions for all libraries except ncurses and pthreads have to be
 sudo apt install libasio-dev zlib1g-dev libavformat-dev libavcodec-dev libavutil-dev libswscale-dev libswresample-dev libcurl4-gnutls-dev libspdlog-dev
 ```
 
+### Using the test suite
+
+This project comes with a number of API tests in the `tests` directory, that are implemented using GoogleTest and C++ Requests (cpr).
+
+On the Mac, you can install the required packages using:
+
+```shell
+brew install googletest cpr
+```
+
+For Ubuntu, unfortunately a distribution package is not available at the time of writing. The commands to build and install are as follows:
+
+```shell
+sudo apt update
+sudo apt install cmake
+git clone https://github.com/libcpr/cpr.git
+cd cpr && mkdir build && cd build
+cmake .. -DCPR_USE_SYSTEM_CURL=ON -DBUILD_SHARED_LIBS=ON -DCMAKE_CXX_STANDARD=20
+cmake --build . --parallel
+sudo cmake --install .
+cd ../..
+```
+
+The `cpr` directory has been included in .gitignore, so these steps will not pollute your git branch.
+
+After installing prerequisites, the tests can be built using `make -C tests` and executed by running `LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib ./tests/tests`.
+
 ## Interfaces Overview
 
 ### ISocketChannel  

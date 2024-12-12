@@ -3,3 +3,5 @@ secrets.h
 *.o
 ndscpp
 monitor/ledmon
+tests/tests
+cpr

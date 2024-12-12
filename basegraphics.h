@@ -46,6 +46,15 @@ public:
     uint32_t Width()  const override { return _width; }
     uint32_t Height() const override { return _height; }
 
+    void FadePixelToBlackBy(uint32_t x, uint32_t y, float amount) override
+    {
+        if (_isInBounds(x, y))
+        {
+            CRGB& pixel = _pixels[_index(x, y)];
+            pixel.nscale8(amount * 255);
+        }
+    }
+
     const vector<CRGB>& GetPixels() const override
     {
         return _pixels;

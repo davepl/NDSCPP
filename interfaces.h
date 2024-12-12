@@ -33,6 +33,7 @@ public:
     virtual uint32_t Height() const = 0;
     virtual void SetPixel(uint32_t x, uint32_t y, const CRGB& color) = 0;
     virtual void SetPixelsF(float fPos, float count, CRGB c, bool bMerge = false) = 0;
+    virtual void FadePixelToBlackBy(uint32_t x, uint32_t y, float amount) = 0;
     virtual CRGB GetPixel(uint32_t x, uint32_t y) const = 0;
     virtual void Clear(const CRGB& color) = 0;
     virtual void FadeFrameBy(uint8_t dimAmount) = 0;
@@ -208,7 +209,7 @@ public:
     virtual void     SetPort(uint16_t port) = 0;
 
     virtual vector<reference_wrapper<ICanvas>> Canvases() const = 0;
-    virtual bool AddCanvas(unique_ptr<ICanvas> ptrCanvas) = 0;
+    virtual uint32_t AddCanvas(unique_ptr<ICanvas> ptrCanvas) = 0;
     virtual bool DeleteCanvasById(uint32_t id) = 0;
     virtual bool UpdateCanvas(unique_ptr<ICanvas> ptrCanvas) = 0;
     virtual bool AddFeatureToCanvas(uint16_t canvasId, unique_ptr<ILEDFeature> feature) = 0;

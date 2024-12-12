@@ -12,6 +12,10 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    defaults:
+      run:
+        shell: bash
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
@@ -20,11 +24,16 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update 
-        sudo apt-get install -y libasio-dev zlib1g-dev libavformat-dev libavcodec-dev libavutil-dev libswscale-dev libswresample-dev libcurl4-gnutls-dev libspdlog-dev
+        sudo apt-get install -y libasio-dev zlib1g-dev libavformat-dev libavcodec-dev libavutil-dev libswscale-dev libswresample-dev libcurl4-gnutls-dev libspdlog-dev libgtest-dev
+        git clone https://github.com/libcpr/cpr.git
+        cd cpr && mkdir build && cd build
+        cmake .. -DCPR_USE_SYSTEM_CURL=ON -DBUILD_SHARED_LIBS=ON -DCMAKE_CXX_STANDARD=20
+        cmake --build . --parallel
+        sudo cmake --install .
 
     - name: Set up dependencies (macOS)
       if: matrix.os == 'macos-latest'
-      run: brew install asio ffmpeg spdlog
+      run: brew install asio ffmpeg spdlog googletest cpr
 
     - name: Create secrets.h
       run: cp secrets.example.h secrets.h
@@ -33,3 +42,14 @@ jobs:
       run: |
         make all
         make -C monitor
+        make -C tests
+
+    - name: Run tests
+      # For the API tests, we start ndscpp in the background and then run the tests.
+      # Killing ndscpp is a bit rude and technically unnecessary, but we've been 
+      # raised to clean up after ourselves, so that's what we do.
+      run: |
+        ./ndscpp > /dev/null 2>&1 &
+        sleep 1
+        LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib ./tests/tests
+        sudo killall -9 ndscpp

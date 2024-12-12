@@ -85,7 +85,8 @@ int main(int argc, char *argv[])
     #else
         unique_ptr<Controller> ptrController = Controller::CreateFromFile(filename);
     #endif    
-        
+    
+    ptrController->SetPort(port);
     ptrController->Connect();
     ptrController->Start();
 

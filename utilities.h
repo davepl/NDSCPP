@@ -22,6 +22,20 @@ class Utilities
 {
 public:
 
+    static constexpr float constexpr_sqrt(float x, float epsilon = 1e-5f)
+    {
+        float guess = x / 2.0f;
+        float result = (guess + x / guess) / 2.0f;
+
+        while ((result - guess) > epsilon || (result - guess) < -epsilon) 
+        {
+            guess = result;
+            result = (guess + x / guess) / 2.0f;
+        }
+
+        return result;
+    }
+
     static double RandomDouble(double min, double max)
     {
         static mt19937 rng(random_device{}());

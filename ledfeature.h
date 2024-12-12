@@ -187,25 +187,25 @@ public:
 inline void to_json(nlohmann::json& j, const ILEDFeature & feature) 
 {
     j = {
-            {"type", "LEDFeature"},
-            {"id", feature.Id()},
-            {"hostName", feature.Socket().HostName()},
-            {"friendlyName", feature.Socket().FriendlyName()},
-            {"port", feature.Socket().Port()},
-            {"width", feature.Width()},
-            {"height", feature.Height()},
-            {"offsetX", feature.OffsetX()},
-            {"offsetY", feature.OffsetY()},
-            {"reversed", feature.Reversed()},
-            {"channel", feature.Channel()},
-            {"redGreenSwap", feature.RedGreenSwap()},
+            {"type",              "LEDFeature"},
+            {"id",                feature.Id()},
+            {"hostName",          feature.Socket().HostName()},
+            {"friendlyName",      feature.Socket().FriendlyName()},
+            {"port",              feature.Socket().Port()},
+            {"width",             feature.Width()},
+            {"height",            feature.Height()},
+            {"offsetX",           feature.OffsetX()},
+            {"offsetY",           feature.OffsetY()},
+            {"reversed",          feature.Reversed()},
+            {"channel",           feature.Channel()},
+            {"redGreenSwap",      feature.RedGreenSwap()},
             {"clientBufferCount", feature.ClientBufferCount()},
-            {"timeOffset", feature.TimeOffset()},
-            {"bytesPerSecond", feature.Socket().GetLastBytesPerSecond()},
-            {"isConnected", feature.Socket().IsConnected()},
-            {"queueDepth", feature.Socket().GetCurrentQueueDepth()},
-            {"queueMaxSize", feature.Socket().GetQueueMaxSize()},
-            {"reconnectCount", feature.Socket().GetReconnectCount()}
+            {"timeOffset",        feature.TimeOffset()},
+            {"bytesPerSecond",    feature.Socket().GetLastBytesPerSecond()},
+            {"isConnected",       feature.Socket().IsConnected()},
+            {"queueDepth",        feature.Socket().GetCurrentQueueDepth()},
+            {"queueMaxSize",      feature.Socket().GetQueueMaxSize()},
+            {"reconnectCount",    feature.Socket().GetReconnectCount()}
         };
 
     const auto &response = feature.Socket().LastClientResponse();
@@ -215,22 +215,25 @@ inline void to_json(nlohmann::json& j, const ILEDFeature & feature)
 
 inline void from_json(const nlohmann::json& j, unique_ptr<ILEDFeature>& feature) 
 {
-    if (j.at("type").get<string>() != "LEDFeature") 
+    // Ensure the type matches
+    if (j.at("type").get<std::string>() != "LEDFeature") 
     {
-        throw runtime_error("Invalid feature type in JSON");
+        throw std::runtime_error("Invalid feature type in JSON");
     }
 
-    feature = make_unique<LEDFeature>(
-        j.at("hostName").get<string>(),
-        j.at("friendlyName").get<string>(),
+    // Use `at` for all fields since they are mandatory
+    feature = std::make_unique<LEDFeature>(
+        j.at("hostName").get<std::string>(),
+        j.at("friendlyName").get<std::string>(),
         j.at("port").get<uint16_t>(),
         j.at("width").get<uint32_t>(),
-        j.value("height", 1u),
-        j.value("offsetX", 0u),
-        j.value("offsetY", 0u),
-        j.value("reversed", false),
-        j.value("channel", uint8_t(0)),
-        j.value("redGreenSwap", false),
-        j.value("clientBufferCount", 8u)
+        j.at("height").get<uint32_t>(),
+        j.at("offsetX").get<uint32_t>(),
+        j.at("offsetY").get<uint32_t>(),
+        j.at("reversed").get<bool>(),
+        j.at("channel").get<uint8_t>(),
+        j.at("redGreenSwap").get<bool>(),
+        j.at("clientBufferCount").get<uint32_t>()
     );
 }
+
