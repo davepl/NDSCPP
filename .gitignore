@@ -1,4 +1,5 @@
 secrets.h
+config.led
 .deps
 *.o
 ndscpp

@@ -9,6 +9,7 @@ DEPFLAGS=-MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
 
 SOURCES=main.cpp
 EXECUTABLE=ndscpp
+CONFIG_FILES=config.led secrets.h
 DEPDIR=.deps
 OBJECTS:=$(SOURCES:.cpp=.o)
 DEPFILES:=$(SOURCES:%.cpp=$(DEPDIR)/%.d)
@@ -41,9 +42,15 @@ $(EXECUTABLE): $(OBJECTS)
 	@echo Linking $@...
 	@$(CC) $(LDFLAGS) $^ -o $@ $(LIBS)
 
-%.o: %.cpp $(DEPDIR)/%.d | $(DEPDIR)
+%.o: %.cpp $(CONFIG_FILES) $(DEPDIR)/%.d | $(DEPDIR)
 	@echo Compiling $<...
 	@$(CC) $(CFLAGS) $(DEPFLAGS) -c $< -o $@
+
+$(CONFIG_FILES): % : %.example
+	@if [ ! -f $@ ]; then \
+        echo "Copying $< to $@..."; \
+		cp $< $@; \
+    fi	
 
 $(DEPDIR): ; @mkdir -p $@
 
@@ -53,6 +60,6 @@ clean:
 	@echo Cleaning build files...
 	@rm -f $(OBJECTS) $(EXECUTABLE) $(DEPFILES)
 
-.PHONY: all clean help
+.PHONY: all clean help 
 
 include $(wildcard $(DEPFILES))
